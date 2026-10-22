@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ru" data-lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NullTweaker — твикер и деблоат для Windows 10/11</title>
+<meta name="description" content="Бесплатный деблоат и твикер Windows 10/11. Телеметрия, фоновые службы, встроенные приложения, контекстное меню — всё в одном приложении с откатом изменений.">
+
+<!-- Иконка (inline SVG-фavicon) -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111'/%3E%3Cpath d='M18 20h28M32 20v24' stroke='%23fff' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+
+<style>
+  /* ─────────── Переменные и базовые настройки ─────────── */
+  :root{
+    --bg:        #fbfbfc;
+    --surface:   #ffffff;
+    --text:      #14161a;
+    --muted:     #6b7280;
+    --line:      #e6e8ec;
+    --accent:    #14161a;
+    --accent-inv:#ffffff;
+    --code-bg:   #f4f5f7;
+    --radius:    14px;
+    --radius-sm: 9px;
+    --wrap:      1080px;
+    --shadow:    0 1px 2px rgba(16,18,22,.04), 0 8px 24px -12px rgba(16,18,22,.12);
+
+    --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display",
+            "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: "JetBrains Mono", "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:        #0c0d0f;
+      --surface:   #14161a;
+      --text:      #ecedef;
+      --muted:     #9aa1ab;
+      --line:      #23262c;
+      --accent:    #ecedef;
+      --accent-inv:#0c0d0f;
+      --code-bg:   #1b1e23;
+      --shadow:    0 1px 2px rgba(0,0,0,.5), 0 12px 32px -16px rgba(0,0,0,.9);
+    }
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+
+  html{ scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce){ html{ scroll-behavior:auto; } }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+
+  img,svg{ display:block; max-width:100%; }
+  a{ color:inherit; }
+
+  :focus-visible{
+    outline:2px solid var(--text);
+    outline-offset:3px;
+    border-radius:4px;
+  }
+
+  .wrap{
+    width:100%;
+    max-width:var(--wrap);
+    margin-inline:auto;
+    padding-inline:24px;
+  }
+
+  section{ padding-block:88px; }
+  @media (max-width:640px){ section{ padding-block:60px; } }
+
+  h1,h2,h3{ line-height:1.18; letter-spacing:-.02em; margin:0; font-weight:650; }
+  h1{ font-size:clamp(2.1rem, 5.2vw, 3.4rem); }
+  h2{ font-size:clamp(1.5rem, 3.4vw, 2.1rem); }
+  h3{ font-size:1.0625rem; }
+
+  p{ margin:0; }
+
+  .eyebrow{
+    font-size:.75rem;
+    font-weight:600;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:14px;
+  }
+
+  .lead{ color:var(--muted); font-size:1.0625rem; max-width:60ch; }
+
+  /* ─────────── Языковые переключатели ─────────── */
+  [data-lang="ru"] .en,
+  [data-lang="en"] .ru{ display:none !important; }
+
+  /* ─────────── Шапка ─────────── */
+  header{
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter:saturate(180%) blur(14px);
+    -webkit-backdrop-filter:saturate(180%) blur(14px);
+    border-bottom:1px solid transparent;
+    transition:border-color .2s ease;
+  }
+  header.scrolled{ border-bottom-color:var(--line); }
+
+  .nav{
+    display:flex;
+    align-items:center;
+    gap:28px;
+    height:64px;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:650;
+    letter-spacing:-.01em;
+    text-decoration:none;
+    margin-right:auto;
+  }
+  .brand .mark{
+    width:26px; height:26px;
+    border-radius:7px;
+    background:var(--text);
+    color:var(--bg);
+    display:grid;
+    place-items:center;
+    font-size:.8rem;
+    font-weight:700;
+    font-family:var(--mono);
+  }
+
+  .nav-links{
+    display:flex;
+    gap:26px;
+    font-size:.9375rem;
+  }
+  .nav-links a{
+    text-decoration:none;
+    color:var(--muted);
+    transition:color .15s ease;
+  }
+  .nav-links a:hover{ color:var(--text); }
+
+  @media (max-width:820px){ .nav-links{ display:none; } }
+
+  .lang{
+    display:flex;
+    border:1px solid var(--line);
+    border-radius:999px;
+    overflow:hidden;
+    font-size:.8125rem;
+    font-weight:600;
+  }
+  .lang button{
+    appearance:none;
+    border:0;
+    background:transparent;
+    color:var(--muted);
+    font:inherit;
+    padding:5px 12px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .lang button:hover{ color:var(--text); }
+  .lang button[aria-pressed="true"]{
+    background:var(--text);
+    color:var(--bg);
+  }
+
+  /* ─────────── Кнопки ─────────── */
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:9px;
+    padding:12px 19px;
+    border-radius:var(--radius-sm);
+    font-size:.9375rem;
+    font-weight:600;
+    text-decoration:none;
+    border:1px solid transparent;
+    cursor:pointer;
+    font-family:inherit;
+    transition:transform .12s ease, opacity .15s ease, background .15s ease, border-color .15s ease;
+  }
+  .btn:active{ transform:translateY(1px); }
+
+  .btn-primary{
+    background:var(--text);
+    color:var(--bg);
+  }
+  .btn-primary:hover{ opacity:.86; }
+
+  .btn-ghost{
+    background:transparent;
+    color:var(--text);
+    border-color:var(--line);
+  }
+  .btn-ghost:hover{ border-color:var(--text); }
+
+  .btn svg{ width:17px; height:17px; flex:none; }
+
+  /* ─────────── Hero ─────────── */
+  .hero{ padding-block:104px 72px; }
+  @media (max-width:640px){ .hero{ padding-block:64px 48px; } }
+
+  .hero .lead{ margin-top:20px; }
+
+  .hero-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    margin-top:32px;
+  }
+
+  .meta-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 22px;
+    margin-top:30px;
+    font-size:.8125rem;
+    color:var(--muted);
+    font-family:var(--mono);
+  }
+  .meta-row span{ display:inline-flex; align-items:center; gap:7px; }
+  .dot{
+    width:6px; height:6px; border-radius:50%;
+    background:currentColor; opacity:.45; flex:none;
+  }
+
+  /* Панель-имитация интерфейса */
+  .panel{
+    margin-top:56px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:var(--surface);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .panel-bar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:11px 14px;
+    border-bottom:1px solid var(--line);
+    font-family:var(--mono);
+    font-size:.75rem;
+    color:var(--muted);
+  }
+  .panel-bar i{
+    width:10px; height:10px; border-radius:50%;
+    background:var(--line);
+    display:block;
+  }
+  .panel-bar b{ font-weight:500; margin-left:8px; }
+
+  .rows{ padding:8px 0; }
+  .row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:11px 16px;
+    font-size:.875rem;
+    border-bottom:1px solid var(--line);
+  }
+  .row:last-child{ border-bottom:0; }
+  .row .name{ flex:1; min-width:0; }
+  .row .name small{
+    display:block;
+    color:var(--muted);
+    font-size:.75rem;
+    font-family:var(--mono);
+    margin-top:2px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .pill{
+    font-size:.6875rem;
+    font-family:var(--mono);
+    padding:2px 8px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    color:var(--muted);
+    flex:none;
+  }
+
+  .switch{
+    width:36px; height:20px;
+    border-radius:999px;
+    background:var(--line);
+    position:relative;
+    flex:none;
+  }
+  .switch::after{
+    content:"";
+    position:absolute;
+    inset:3px auto 3px 3px;
+    width:14px;
+    border-radius:50%;
+    background:var(--surface);
+    transition:transform .18s ease;
+  }
+  .switch.on{ background:var(--text); }
+  .switch.on::after{ transform:translateX(16px); background:var(--bg); }
+
+  /* ─────────── Сетки фич ─────────── */
+  .grid{
+    display:grid;
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+    margin-top:44px;
+  }
+  .grid-3{ grid-template-columns:repeat(3,1fr); }
+  .grid-2{ grid-template-columns:repeat(2,1fr); }
+  @media (max-width:860px){ .grid-3{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:640px){ .grid-3,.grid-2{ grid-template-columns:1fr; } }
+
+  .card{
+    background:var(--surface);
+    padding:26px 24px 28px;
+  }
+  .card h3{ margin-bottom:8px; }
+  .card p{ color:var(--muted); font-size:.9375rem; }
+  .card .num{
+    font-family:var(--mono);
+    font-size:.75rem;
+    color:var(--muted);
+    display:block;
+    margin-bottom:16px;
+  }
+  .card .ico{
+    width:30px; height:30px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    display:grid;
+    place-items:center;
+    margin-bottom:16px;
+    color:var(--text);
+  }
+  .card .ico svg{ width:15px; height:15px; }
+
+  /* ─────────── Секция со скриншотом ─────────── */
+  .split{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:56px;
+    align-items:center;
+    margin-top:44px;
+  }
+  @media (max-width:900px){ .split{ grid-template-columns:1fr; gap:36px; } }
+
+  .checks{ list-style:none; margin:24px 0 0; padding:0; display:grid; gap:14px; }
+  .checks li{
+    display:flex;
+    gap:12px;
+    font-size:.9375rem;
+    color:var(--muted);
+  }
+  .checks li b{ color:var(--text); font-weight:600; display:block; }
+  .checks svg{
+    width:17px; height:17px;
+    flex:none;
+    margin-top:4px;
+    color:var(--text);
+  }
+
+  /* ─────────── Шаги ─────────── */
+  .steps{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:28px;
+    margin-top:44px;
+  }
+  @media (max-width:820px){ .steps{ grid-template-columns:1fr; gap:22px; } }
+
+  .step{ border-top:2px solid var(--text); padding-top:18px; }
+  .step .n{
+    font-family:var(--mono);
+    font-size:.75rem;
+    color:var(--muted);
+  }
+  .step h3{ margin:8px 0 8px; }
+  .step p{ color:var(--muted); font-size:.9375rem; }
+  .step code{
+    font-family:var(--mono);
+    font-size:.8125rem;
+    background:var(--code-bg);
+    border:1px solid var(--line);
+    padding:1px 6px;
+    border-radius:5px;
+  }
+
+  /* ─────────── FAQ ─────────── */
+  .faq{
+    margin-top:40px;
+    border-top:1px solid var(--line);
+  }
+  details{
+    border-bottom:1px solid var(--line);
+  }
+  summary{
+    list-style:none;
+    cursor:pointer;
+    padding:20px 0;
+    font-weight:600;
+    display:flex;
+    gap:16px;
+    align-items:center;
+    font-size:1rem;
+  }
+  summary::-webkit-details-marker{ display:none; }
+  summary .plus{
+    margin-left:auto;
+    font-family:var(--mono);
+    color:var(--muted);
+    font-size:1.125rem;
+    line-height:1;
+    transition:transform .2s ease;
+    flex:none;
+  }
+  details[open] summary .plus{ transform:rotate(45deg); }
+  details p{
+    color:var(--muted);
+    font-size:.9375rem;
+    padding-bottom:22px;
+    max-width:75ch;
+  }
+
+  /* ─────────── CTA ─────────── */
+  .cta{
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    background:var(--surface);
+    padding:52px 44px;
+    text-align:center;
+    box-shadow:var(--shadow);
+  }
+  @media (max-width:640px){ .cta{ padding:36px 24px; } }
+  .cta h2{ max-width:22ch; margin-inline:auto; }
+  .cta p{ color:var(--muted); margin:16px auto 0; max-width:52ch; }
+  .cta .hero-actions{ justify-content:center; margin-top:28px; }
+
+  /* ─────────── Футер ─────────── */
+  footer{
+    border-top:1px solid var(--line);
+    padding-block:34px;
+    font-size:.875rem;
+    color:var(--muted);
+  }
+  .foot{
+    display:flex;
+    flex-wrap:wrap;
+    gap:16px 28px;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .foot-links{ display:flex; gap:20px; flex-wrap:wrap; }
+  .foot-links a{ text-decoration:none; transition:color .15s ease; }
+  .foot-links a:hover{ color:var(--text); }
+
+  /* ─────────── Анимация появления ─────────── */
+  .reveal{
+    opacity:0;
+    transform:translateY(14px);
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .reveal.visible{ opacity:1; transform:none; }
+
+  @media (prefers-reduced-motion: reduce){
+    .reveal{ opacity:1; transform:none; transition:none; }
+  }
+</style>
+</head>
+
+<body>
+
+<!-- ══════════════════ ШАПКА ══════════════════ -->
+<header id="top">
+  <div class="wrap nav">
+    <a class="brand" href="#top">
+      <span class="mark" aria-hidden="true">NT</span>
+      <span>NullTweaker</span>
+    </a>
+
+    <nav class="nav-links">
+      <a href="#features"><span class="ru">Возможности</span><span class="en">Features</span></a>
+      <a href="#safety"><span class="ru">Безопасность</span><span class="en">Safety</span></a>
+      <a href="#how"><span class="ru">Установка</span><span class="en">Install</span></a>
+      <a href="#faq">FAQ</a>
+    </nav>
+
+    <div class="lang" role="group" aria-label="Language / Язык">
+      <button type="button" data-set-lang="ru" aria-pressed="true">RU</button>
+      <button type="button" data-set-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ══════════════════ HERO ══════════════════ -->
+  <section class="hero wrap" id="hero">
+    <p class="eyebrow">
+      <span class="ru">Windows 10 / 11 · бесплатно · открытый исходный код</span>
+      <span class="en">Windows 10 / 11 · free · open source</span>
+    </p>
+
+    <h1>
+      <span class="ru">Чистая Windows без лишнего.</span>
+      <span class="en">A clean Windows, nothing extra.</span>
+    </h1>
+
+    <p class="lead">
+      <span class="ru">NullTweaker убирает телеметрию, встроенные приложения, навязчивые фоновые службы и рекламные рекомендации — и возвращает систему к состоянию, в котором она просто работает. Каждое изменение обратимо.</span>
+      <span class="en">NullTweaker removes telemetry, bundled apps, noisy background services and ad recommendations — and returns your system to a state where it simply works. Every change is reversible.</span>
+    </p>
+
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="https://github.com/" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        <span class="ru">Скачать бесплатно</span>
+        <span class="en">Download free</span>
+      </a>
+
+      <a class="btn btn-ghost" href="#features">
+        <span class="ru">Что внутри</span>
+        <span class="en">See what's inside</span>
+      </a>
+    </div>
+
+    <div class="meta-row">
+      <span><i class="dot"></i><span class="ru">v2.4.0</span><span class="en">v2.4.0</span></span>
+      <span><i class="dot"></i><span class="ru">~4,7 МБ</span><span class="en">~4.7 MB</span></span>
+      <span><i class="dot"></i><span class="ru">Портативный .exe</span><span class="en">Portable .exe</span></span>
+      <span><i class="dot"></i><span class="ru">Установка не требуется</span><span class="en">No install required</span></span>
+      <span><i class="dot"></i><span class="ru">Точка восстановления</span><span class="en">Restore point</span></span>
+    </div>
+
+    <!-- Имитация интерфейса приложения -->
+    <div class="panel reveal" role="img" aria-label="Скриншот интерфейса NullTweaker: список твиков с переключателями">
+      <div class="panel-bar" aria-hidden="true">
+        <i></i><i></i><i></i>
+        <b>NullTweaker — Tweaks</b>
+      </div>
+      <div class="rows">
+        <div class="row">
+          <div class="name">
+            <span class="ru">Телеметрия и сбор диагностики</span>
+            <span class="en">Telemetry and diagnostic data</span>
+            <small>HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection</small>
+          </div>
+          <span class="switch on"></span>
+        </div>
+        <div class="row">
+          <div class="name">
+            <span class="ru">Рекламные рекомендации в «Пуске»</span>
+            <span class="en">Suggested content in Start</span>
+            <small>HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager</small>
+          </div>
+          <span class="switch on"></span>
+        </div>
+        <div class="row">
+          <div class="name">
+            <span class="ru">Встроенные приложения (32 шт.)</span>
+            <span class="en">Bundled apps (32 items)</span>
+            <small>Get-AppxPackage | Remove-AppxPackage</small>
+          </div>
+          <span class="switch on"></span>
+        </div>
+        <div class="row">
+          <div class="name">
+            <span class="ru">Cortana и веб-поиск в меню «Пуск»</span>
+            <span class="en">Cortana and web search in Start</span>
+            <small>HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Search</small>
+          </div>
+          <span class="switch on"></span>
+        </div>
+        <div class="row">
+          <div class="name">
+            <span class="ru">Задачи в планировщике для аналитики</span>
+            <span class="en">Scheduled tasks for analytics</span>
+            <small>\Microsoft\Windows\Application Experience</small>
+          </div>
+          <span class="switch on"></span>
+        </div>
+        <div class="row">
+          <div class="name">
+            <span class="ru">Полноэкранное меню «Выключение» в Win10</span>
+            <span class="en">Full-screen shutdown menu in Win10</span>
+            <small>HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced</small>
+          </div>
+          <span class="switch"></span>
+        </div>
+        <div class="row">
+          <div class="name">
+            <span class="ru">Старое контекстное меню проводника</span>
+            <span class="en">Classic Explorer context menu</span>
+            <small>HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-…}</small>
+          </div>
+          <span class="switch on"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ ВОЗМОЖНОСТИ ══════════════════ -->
+  <section id="features" class="wrap">
+    <p class="eyebrow">
+      <span class="ru">Возможности</span>
+      <span class="en">Features</span>
+    </p>
+    <h2>
+      <span class="ru">Один список вместо сотни инструкций.</span>
+      <span class="en">One list instead of a hundred guides.</span>
+    </h2>
+    <p class="lead" style="margin-top:16px">
+      <span class="ru">Все твики сгруппированы по темам, снабжены понятными описаниями и ссылкой на конкретный ключ реестра или команду — чтобы было видно, что именно меняется.</span>
+      <span class="en">Tweaks are grouped by topic, with plain-language descriptions and a reference to the exact registry key or command — so you can see what actually changes.</span>
+    </p>
+
+    <div class="grid grid-3">
+      <article class="card reveal">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg></div>
+        <h3><span class="ru">Приватность</span><span class="en">Privacy</span></h3>
+        <p>
+          <span class="ru">Отключение телеметрии, идентификатора рекламы, журнала действий, распознавания речи и отправки диагностики.</span>
+          <span class="en">Disable telemetry, the advertising ID, activity history, speech recognition and diagnostic uploads.</span>
+        </p>
+      </article>
+
+      <article class="card reveal">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><path d="M14 6h4a3 3 0 0 1 3 3v2M10 18H6a3 3 0 0 1-3-3v-2"/></svg></div>
+        <h3><span class="ru">Деблоат системы</span><span class="en">De-bloat</span></h3>
+        <p>
+          <span class="ru">Удаление предустановленных приложений, Xbox-компонентов, OneDrive и демонстрационных файлов — по выбору, а не оптом.</span>
+          <span class="en">Remove preinstalled apps, Xbox components, OneDrive and sample files — individually, not in one sweep.</span>
+        </p>
+      </article>
+
+      <article class="card reveal">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+        <h3><span class="ru">Фоновые службы</span><span class="en">Background services</span></h3>
+        <p>
+          <span class="ru">Управление службами и задачами планировщика, которые расходуют память и диск при простое.</span>
+          <span class="en">Control services and scheduled tasks that eat memory and disk while idle.</span>
+        </p>
+      </article>
+
+      <article class="card reveal">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5"/></svg></div>
+        <h3><span class="ru">Интерфейс проводника</span><span class="en">Explorer UI</span></h3>
+        <p>
+          <span class="ru">Показ расширений файлов, скрытых файлов, старого контекстного меню и отключение панели виджетов.</span>
+          <span class="en">Show file extensions, hidden files, restore the classic context menu and remove the widgets panel.</span>
+        </p>
+      </article>
+
+      <article class="card reveal">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></div>
+        <h3><span class="ru">Откат изменений</span><span class="en">Rollback</span></h3>
+        <p>
+          <span class="ru">Перед применением создаётся снимок выбранных ключей. Любой твик можно вернуть, даже после перезагрузки.</span>
+          <span class="en">A snapshot of the selected keys is taken before applying. Any tweak can be reverted, even after a reboot.</span>
+        </p>
+      </article>
+
+      <article class="card reveal">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></div>
+        <h3><span class="ru">Портативность</span><span class="en">Portable</span></h3>
+        <p>
+          <span class="ru">Один исполняемый файл без установки, служб и драйверов. Настройки хранятся в профиле пользователя.</span>
+          <span class="en">A single executable with no installer, services or drivers. Settings live in your user profile.</span>
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ══════════════════ БЕЗОПАСНОСТЬ ══════════════════ -->
+  <section id="safety" class="wrap">
+    <p class="eyebrow">
+      <span class="ru">Безопасность и предсказуемость</span>
+      <span class="en">Safety and predictability</span>
+    </p>
+    <h2>
+      <span class="ru">Никаких «магических» оптимизаций.</span>
+      <span class="en">No magic optimizations.</span>
+    </h2>
+
+    <div class="split">
+      <div>
+        <p class="lead">
+          <span class="ru">NullTweaker не чистит реестр наугад, не трогает систему защиты и не отключает обновления безопасности. Каждый пункт описан словами и продублирован технической деталью.</span>
+          <span class="en">NullTweaker doesn't scrub the registry at random, doesn't touch the security subsystem and doesn't disable security updates. Every entry is described in plain words and backed by a technical detail.</span>
+        </p>
+
+        <ul class="checks">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>
+              <b><span class="ru">Точка восстановления</span><span class="en">Restore point</span></b>
+              <span class="ru">Предлагается перед первым применением пакета изменений.</span>
+              <span class="en">Offered before the first batch of changes is applied.</span>
+            </span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>
+              <b><span class="ru">Экспорт профиля</span><span class="en">Profile export</span></b>
+              <span class="ru">Конфигурация сохраняется в <code style="font-family:var(--mono);font-size:.8125rem">.ntprofile</code> — переносится между машинами.</span>
+              <span class="en">Configuration is saved to <code style="font-family:var(--mono);font-size:.8125rem">.ntprofile</code> — portable between machines.</span>
+            </span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>
+              <b><span class="ru">Открытый исходный код</span><span class="en">Open source</span></b>
+              <span class="ru">Сборка воспроизводится локально, релизы подписаны и сопровождаются контрольной суммой.</span>
+              <span class="en">Builds reproduce locally; releases are signed and come with a checksum.</span>
+            </span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span>
+              <b><span class="ru">Без сетевой активности</span><span class="en">No network activity</span></b>
+              <span class="ru">Приложение не отправляет данные наружу и не требует учётной записи.</span>
+              <span class="en">The app sends no data anywhere and requires no account.</span>
+            </span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="panel reveal" style="margin-top:0">
+        <div class="panel-bar" aria-hidden="true">
+          <i></i><i></i><i></i>
+          <b>systeminfo · verify</b>
+        </div>
+        <div class="rows" style="font-family:var(--mono);font-size:.8125rem">
+          <div class="row"><div class="name"><span class="ru">ОС</span><span class="en">OS</span><small>Windows 11 Pro 23H2 · 22631.4890</small></div><span class="pill">OK</span></div>
+          <div class="row"><div class="name"><span class="ru">Архитектура</span><span class="en">Architecture</span><small>x64</small></div><span class="pill">OK</span></div>
+          <div class="row"><div class="name"><span class="ru">Права</span><span class="en">Privileges</span><small>Administrator</small></div><span class="pill">OK</span></div>
+          <div class="row"><div class="name"><span class="ru">Служба защиты</span><span class="en">Security service</span><small>WinDefend — Running</small></div><span class="pill"><span class="ru">активна</span><span class="en">active</span></span></div>
+          <div class="row"><div class="name"><span class="ru">Снимок реестра</span><span class="en">Registry snapshot</span><small>04.10.2026 21:14 · 417 keys</small></div><span class="pill"><span class="ru">готов</span><span class="en">ready</span></span></div>
+          <div class="row"><div class="name"><span class="ru">Сеть</span><span class="en">Network</span><small>0 requests</small></div><span class="pill">—</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ УСТАНОВКА ══════════════════ -->
+  <section id="how" class="wrap">
+    <p class="eyebrow">
+      <span class="ru">Установка</span>
+      <span class="en">Install</span>
+    </p>
+    <h2>
+      <span class="ru">Три шага и полторы минуты.</span>
+      <span class="en">Three steps, about ninety seconds.</span>
+    </h2>
+
+    <div class="steps">
+      <div class="step reveal">
+        <span class="n">01</span>
+        <h3><span class="ru">Скачайте архив</span><span class="en">Download the archive</span></h3>
+        <p>
+          <span class="ru">Возьмите последний релиз со страницы GitHub. Проверьте SHA-256 — он опубликован рядом с файлом.</span>
+          <span class="en">Grab the latest release from the GitHub page. Verify the SHA-256 — it is published next to the file.</span>
+        </p>
+      </div>
+
+      <div class="step reveal">
+        <span class="n">02</span>
+        <h3><span class="ru">Запустите от администратора</span><span class="en">Run as administrator</span></h3>
+        <p>
+          <span class="ru">Прав администратора требуют лишь ключи <code>HKLM</code> и удаление пакетов Appx. Распаковка не нужна — файл портативный.</span>
+          <span class="en">Administrator rights are needed only for <code>HKLM</code> keys and Appx removal. No unpacking — the file is portable.</span>
+        </p>
+      </div>
+
+      <div class="step reveal">
+        <span class="n">03</span>
+        <h3><span class="ru">Выберите профиль и примените</span><span class="en">Pick a profile and apply</span></h3>
+        <p>
+          <span class="ru">Начните с пресета «Безопасный», проверьте список, снимите лишние галочки и нажмите «Применить». Перезагрузка — по желанию.</span>
+          <span class="en">Start with the "Safe" preset, review the list, uncheck anything you don't want and hit Apply. Reboot is optional.</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ FAQ ══════════════════ -->
+  <section id="faq" class="wrap">
+    <p class="eyebrow">FAQ</p>
+    <h2>
+      <span class="ru">Частые вопросы</span>
+      <span class="en">Frequently asked questions</span>
+    </h2>
+
+    <div class="faq">
+      <details>
+        <summary>
+          <span class="ru">Это безопасно для системы?</span>
+          <span class="en">Is it safe for my system?</span>
+          <span class="plus" aria-hidden="true">+</span>
+        </summary>
+        <p>
+          <span class="ru">Все изменения — задокументированные параметры реестра, службы и пакеты Appx. NullTweaker не удаляет системные файлы, не правит загрузчик и не отключает Защитник Windows. Перед применением создаётся снимок затронутых ключей.</span>
+          <span class="en">Every change is a documented registry value, service or Appx package. NullTweaker doesn't delete system files, doesn't touch the bootloader and doesn't disable Windows Defender. A snapshot of affected keys is taken before applying.</span>
+        </p>
+      </details>
+
+      <details>
+        <summary>
+          <span class="ru">Можно ли всё вернуть назад?</span>
+          <span class="en">Can everything be reverted?</span>
+          <span class="plus" aria-hidden="true">+</span>
+        </summary>
+        <p>
+          <span class="ru">Да. Кнопка «Откат» восстанавливает значения из последнего снимка, а точка восстановления системы покрывает случаи, которые твикер не отслеживает. Единственное исключение — удалённые приложения Appx: их придётся переустановить через Store.</span>
+          <span class="en">Yes. The Rollback button restores values from the latest snapshot, and a System Restore point covers anything the tweaker doesn't track. The one exception is removed Appx apps: those must be reinstalled from the Store.</span>
+        </p>
+      </details>
+
+      <details>
+        <summary>
+          <span class="ru">Работает ли на Windows 10?</span>
+          <span class="en">Does it work on Windows 10?</span>
+          <span class="plus" aria-hidden="true">+</span>
+        </summary>
+        <p>
+          <span class="ru">Поддерживаются Windows 10 1809 и новее, а также Windows 11 до 24H2 включительно. Твики, которых нет в текущей сборке, помечаются как недоступные, а не применяются вслепую.</span>
+          <span class="en">Supported on Windows 10 1809 and newer, and Windows 11 up to and including 24H2. Tweaks missing from your build are marked unavailable instead of being applied blindly.</span>
+        </p>
+      </details>
+
+      <details>
+        <summary>
+          <span class="ru">Нужен ли интернет во время работы?</span>
+          <span class="en">Does it need the internet while running?</span>
+          <span class="plus" aria-hidden="true">+</span>
+        </summary>
+        <p>
+          <span class="ru">Нет. Приложение не обращается к сети: нет проверки обновлений в фоне, нет телеметрии, нет лицензионного сервера. Скачивание новых версий — вручную.</span>
+          <span class="en">No. The app makes no network calls: no background update check, no telemetry, no license server. New versions are downloaded manually.</span>
+        </p>
+      </details>
+
+      <details>
+        <summary>
+          <span class="ru">Стоит ли это что-то?</span>
+          <span class="en">Does it cost anything?</span>
+          <span class="plus" aria-hidden="true">+</span>
+        </summary>
+        <p>
+          <span class="ru">Нет, проект бесплатный и с открытым исходным кодом. Здесь нет платной версии, подписки и встроенных покупок.</span>
+          <span class="en">No, the project is free and open source. There is no paid tier, no subscription and no in-app purchases.</span>
+        </p>
+      </details>
+    </div>
+  </section>
+
+  <!-- ══════════════════ CTA ══════════════════ -->
+  <section class="wrap" id="download">
+    <div class="cta">
+      <h2>
+        <span class="ru">Попробуйте на одной машине.</span>
+        <span class="en">Try it on one machine.</span>
+      </h2>
+      <p>
+        <span class="ru">Начните с пресета «Безопасный», посмотрите, что изменилось, и решите, нужно ли больше. Откат — в один клик.</span>
+        <span class="en">Start with the "Safe" preset, see what changed, then decide whether you want more. Rollback is one click away.</span>
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://github.com/" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          <span class="ru">Скачать с GitHub</span>
+          <span class="en">Download from GitHub</span>
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/" target="_blank" rel="noopener noreferrer">
+          <span class="ru">Документация</span>
+          <span class="en">Documentation</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══════════════════ ФУТЕР ══════════════════ -->
+<footer>
+  <div class="wrap foot">
+    <span>© <span id="year">2026</span> NullTweaker</span>
+    <nav class="foot-links">
+      <a href="#features"><span class="ru">Возможности</span><span class="en">Features</span></a>
+      <a href="#safety"><span class="ru">Безопасность</span><span class="en">Safety</span></a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="https://github.com/" target="_blank" rel="noopener noreferrer"><span class="ru">Лицензия</span><span class="en">License</span></a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ── Год в футере ── */
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  /* ── Переключатель языка ── */
+  var HTML = document.documentElement;
+  var buttons = document.querySelectorAll("[data-set-lang]");
+
+  function setLang(lang) {
+    if (lang !== "ru" && lang !== "en") return;
+    HTML.setAttribute("data-lang", lang);
+    HTML.setAttribute("lang", lang);
+    try { localStorage.setItem("nt-lang", lang); } catch (e) { /* приватный режим */ }
+    buttons.forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.dataset.setLang === lang));
+    });
+    document.title = lang === "ru"
+      ? "NullTweaker — твикер и деблоат для Windows 10/11"
+      : "NullTweaker — a tweaker and de-bloater for Windows 10/11";
+  }
+
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () { setLang(b.dataset.setLang); });
+  });
+
+  /* Начальный язык: сохранённый выбор → язык браузера → русский */
+  var saved = null;
+  try { saved = localStorage.getItem("nt-lang"); } catch (e) { /* игнорируем */ }
+  var browser = (navigator.language || "ru").slice(0, 2).toLowerCase();
+  setLang(saved || (browser === "ru" ? "ru" : browser === "en" ? "en" : "ru"));
+
+  /* ── Тень под шапкой при прокрутке ── */
+  var header = document.querySelector("header");
+  var ticking = false;
+
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function () {
+      header.classList.toggle("scrolled", window.scrollY > 8);
+      ticking = false;
+    });
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  /* ── Появление блоков при прокрутке ── */
+  var items = document.querySelectorAll(".reveal");
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reduce || !("IntersectionObserver" in window)) {
+    items.forEach(function (el) { el.classList.add("visible"); });
+  } else {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("visible");
+        observer.unobserve(entry.target);
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+
+    items.forEach(function (el, i) {
+      el.style.transitionDelay = Math.min(i % 3, 2) * 70 + "ms";
+      observer.observe(el);
+    });
+  }
+
+  /* ── Ссылки-якоря: не добавляем # в адрес ── */
+  document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+    a.addEventListener("click", function (ev) {
+      var id = a.getAttribute("href");
+      if (id.length < 2) return;
+      var target = document.querySelector(id);
+      if (!target) return;
+      ev.preventDefault();
+      target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      history.replaceState(null, "", id);
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+# Rust / Tauri
+app/src-tauri/target/
+app/src-tauri/gen/schemas/
+
+# Node
+node_modules/
+app/dist/
+app/node_modules/
+
+# Окружение
+.appenv
+*.local
+
+# Мусор IDE/системы
+.vs/
+.idea/
+Thumbs.db
